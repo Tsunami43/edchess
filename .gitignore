@@ -1,0 +1,5 @@
+proxy.json
+venv
+.env
+*__pycache__/
+sessions/
