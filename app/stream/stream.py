@@ -11,10 +11,12 @@ from typing import Optional
 class StreamClient(Stream):
     def __init__(
         self,
+        account_id: int,
         url: str = "wss://prod-backend-core-oapiyfa2ga-el.a.run.app/ws/web",
         proxy: Optional[Proxy] = None,
         user_agent: Optional[str] = None,
     ):
+        self.account_id = account_id
         self.url = url
         self.proxy = proxy
         self.headers = {"User-Agent": user_agent or UserAgent().random}
@@ -41,12 +43,21 @@ class StreamClient(Stream):
                 logger.critical(f"Error occurred during WebSocket connection: {str(e)}")
 
     def include_router(self, router: Router):
-        for message_type, handler in router.handlers.items():
-            if message_type in self.router.handlers:
-                logger.warning(
-                    f"Handler for message type '{message_type}' already exists. Overwriting."
-                )
-            self.router.handlers[message_type] = handler
+        """Включает роутер в клиент, добавляя его хэндлеры."""
+        for message_type, state_handlers in router.handlers.items():
+            for state, handler in state_handlers.items():
+                # Добавляем хэндлер в основной роутер
+                if message_type not in self.router.handlers:
+                    self.router.handlers[message_type] = {}
+                self.router.handlers[message_type][state] = handler
+
+    @property
+    def state(self) -> str:
+        return self.router.state
+
+    @state.setter
+    def set(self, state: str):
+        self.router.state = state
 
     async def listener(self):
         try:
