@@ -1,11 +1,12 @@
 from typing import Callable, Dict, Any
 from loguru import logger
-from .context import Context
+import inspect
+from .state import State
 
 
 class Router:
     def __init__(self):
-        self.context = Context()
+        self.state = State()
         self.handlers: Dict[str, Dict[str, Callable[..., Any]]] = {}
 
     def message(self, message_type: str, state: str = "*") -> Callable:
@@ -19,27 +20,46 @@ class Router:
 
         return decorator
 
-    async def handle(self, message_type: str, *args) -> None:
+    async def handle(self, client, message) -> None:
         """Обрабатывает сообщение на основе его типа и текущего состояния."""
-        state_handlers = self.handlers.get(message_type, {})
+        state_handlers = self.handlers.get(message.type, {})
 
         # Сначала пытаемся найти хэндлер для текущего состояния
         handler = state_handlers.get(self.context.state)
 
         if handler:
             logger.debug(
-                f"Handler found for message type '{message_type}' and state '{self.context.state}'"
+                f"Handler found for message type '{message.type}' and state '{self.context.state}'"
             )
-            await handler(*args, context=self.context)
+            await self._call_handler(handler, client, message)
         else:
             # Если хэндлер для текущего состояния не найден, ищем хэндлер с состоянием '*'
             handler = state_handlers.get("*")
             if handler:
                 logger.debug(
-                    f"Handler found for message type '{message_type}' with universal state '*'"
+                    f"Handler found for message type '{message.type}' with universal state '*'"
                 )
-                await handler(*args, context=self.context)
+                await self._call_handler(handler, client, message)
             else:
                 logger.warning(
-                    f"Unknown message type: {message_type} | State: {self.context.state} | Args: {args}"
+                    f"Unknown message type: {message.type} | State: {self.context.state}"
                 )
+
+    async def _call_handler(self, handler: Callable[..., Any], client, message) -> None:
+        """Вызывает хэндлер, передавая ему только нужные параметры."""
+        # Получаем сигнатуру хэндлера
+        sig = inspect.signature(handler)
+        kwargs = {}
+
+        for param_name, param in sig.parameters.items():
+            if param_name == "client":
+                kwargs[param_name] = client
+            elif param_name == "message":
+                kwargs[param_name] = message
+            elif param_name == "state":
+                kwargs[param_name] = self.state
+            elif param_name in self.state.data:
+                kwargs[param_name] = self.state.data[param_name]
+
+        # Вызываем хэндлер с переданными аргументами
+        await handler(**kwargs)

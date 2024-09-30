@@ -3,16 +3,24 @@ from loguru import logger
 
 
 class Chess:
-    def __init__(self, stockfish_path: str):
+    def __init__(self, iam: str, stockfish_path: str = "/usr/bin/stockfish"):
         """
         Инициализация игры с подключением к шахматному движку Stockfish.
 
+        :param iam: Ваш цвет ('w' для белых, 'b' для черных)
         :param stockfish_path: Путь к исполняемому файлу шахматного движка Stockfish
         """
+        if iam not in ["w", "b"]:
+            raise ValueError("iam должен быть 'w' или 'b'.")
+
+        self.iam = iam  # Сохраняем цвет игрока
         try:
             # Инициализируем движок Stockfish
             self.engine = Stockfish(stockfish_path)
             logger.info("Движок Stockfish успешно подключен.")
+            self.current_fen = (
+                None  # Инициализируем переменную для хранения текущей FEN
+            )
         except Exception as e:
             logger.error(f"Ошибка при подключении к Stockfish: {e}")
             raise Exception("Ошибка подключения к Stockfish.")
@@ -25,6 +33,7 @@ class Chess:
         """
         try:
             self.engine.set_fen_position(fen)
+            self.current_fen = fen  # Сохраняем текущую FEN
             logger.info(f"Позиция установлена по FEN: {fen}")
         except Exception as e:
             logger.error(f"Ошибка при установке FEN позиции: {e}")
@@ -44,15 +53,29 @@ class Chess:
             logger.error(f"Ошибка при получении лучшего хода: {e}")
             raise Exception("Не удалось получить лучший ход.")
 
-    def get_board_visual(self) -> None:
+    def get_turn(self) -> str:
         """
-        Возвращает визуализацию текущей позиции на доске.
+        Определяет, чья очередь ходить на основе текущей FEN.
 
-        :return: Визуальное представление доски
+        :return: 'w' если ходят белые, 'b' если черные
         """
-        try:
-            board_visual = self.engine.get_board_visual()
-            logger.info("Текущее состояние доски:\n" + board_visual)
-        except Exception as e:
-            logger.error(f"Ошибка при получении визуализации доски: {e}")
-            raise Exception("Не удалось получить визуализацию доски.")
+        if self.current_fen is None:
+            raise Exception(
+                "Не установлена позиция. Пожалуйста, установите позицию с помощью set_fen_position."
+            )
+
+        # Последний символ FEN строки определяет чей ход
+        turn = self.current_fen.split(" ")[1]
+        logger.info(f"Текущий ход: {turn}")
+        return turn
+
+    def my_turn(self) -> bool:
+        """
+        Проверяет, является ли текущий ход вашим ходом.
+
+        :return: True если ваш ход, иначе False
+        """
+        current_turn = self.get_turn()
+        is_my_turn = current_turn == self.iam
+        logger.info(f"Это мой ход: {is_my_turn}")
+        return is_my_turn

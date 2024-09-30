@@ -1,11 +1,14 @@
 import json
+import asyncio
 import aiohttp
+from typing import Optional
 from loguru import logger
 from fake_useragent import UserAgent
 from .base import Stream
-from ..utils import Proxy
 from .router import Router
-from typing import Optional
+from .ping import PingClient
+from .message import Message
+from ..utils import Proxy
 
 
 class StreamClient(Stream):
@@ -22,7 +25,9 @@ class StreamClient(Stream):
         self.headers = {"User-Agent": user_agent or UserAgent().random}
         self.message_id: int = 0
         self.router = Router()
-        self.__stream = None
+        self.ping = PingClient()
+        self.__websocket = None
+        self.__listener = None
 
     @property
     def __message_id(self) -> int:
@@ -36,9 +41,9 @@ class StreamClient(Stream):
                     self.url, headers=self.headers, proxy=self.proxy
                 ) as ws:
                     logger.info("Connected to WebSocket")
-                    self.__stream = ws
+                    self.__websocket = ws
                     await self.send_message({"connect": {"token": token, "name": "js"}})
-                    await self.listener()
+                    asyncio.create_task(self.listener())
             except Exception as e:
                 logger.critical(f"Error occurred during WebSocket connection: {str(e)}")
 
@@ -54,18 +59,14 @@ class StreamClient(Stream):
     async def listener(self):
         try:
             while True:
-                msg = await self.__stream.receive()
+                msg = await self.__websocket.receive()
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     data = json.loads(msg.data)
                     if data == {}:
                         await self.send_message(data, index=False)
                     else:
                         logger.debug(f"Received message: {data}")
-                        try:
-                            message_type = [key for key in data if key != "id"][0]
-                        except IndexError:
-                            message_type = None
-                        await self.router.handle(message_type, self, data)
+                    await self.router.handle(self, Message(data))
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     logger.error(f"WebSocket error: {msg.text}")
                 elif msg.type == aiohttp.WSMsgType.CLOSED:
@@ -78,10 +79,14 @@ class StreamClient(Stream):
         try:
             if index:
                 data["id"] = self.__message_id
-            await self.__stream.send_str(json.dumps(data))
+            await self.__websocket.send_str(json.dumps(data))
             logger.info(f"Sent message: {data}")
         except Exception as e:
             logger.error(f"Failed to send message: {data}, Error: {str(e)}")
 
-    async def ping_pong(self):
-        pass
+    async def disconnect(self):
+        self.ping.stop()
+        if self.__websocket:
+            await self.__websocket.close()
+            self.__websocket = None
+            logger.info("WebSocket disconnected.")
