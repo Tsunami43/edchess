@@ -51,14 +51,6 @@ class StreamClient(Stream):
                     self.router.handlers[message_type] = {}
                 self.router.handlers[message_type][state] = handler
 
-    @property
-    def state(self) -> str:
-        return self.router.state
-
-    @state.setter
-    def set(self, state: str):
-        self.router.state = state
-
     async def listener(self):
         try:
             while True:
@@ -80,7 +72,7 @@ class StreamClient(Stream):
                     logger.info("WebSocket connection closed by server")
                     break
         except Exception as e:
-            logger.error(f"Error in listner: {str(e)}")
+            logger.error(f"Error in listner: {e}")
 
     async def send_message(self, data: dict, index: bool = True):
         try:
@@ -90,3 +82,6 @@ class StreamClient(Stream):
             logger.info(f"Sent message: {data}")
         except Exception as e:
             logger.error(f"Failed to send message: {data}, Error: {str(e)}")
+
+    async def ping_pong(self):
+        pass

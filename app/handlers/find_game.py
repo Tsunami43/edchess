@@ -4,17 +4,9 @@ from ..stream import Router
 router = Router()
 
 
-# @router.message("connect", state="find_game")
-# async def handle_connect(client, data):
-#     await client.send_message(
-#         {
-#             "subscribe": {"channel": "wait_game_5be4f772-6a64-4122-8949-844e7f1b2928"},
-#         }
-#     )
-
-
 @router.message("subscribe", state="find_game")
-async def handle_subscribe(client, data):
+async def handle_subscribe(client, data, context):
+    logger.info(f"Subscribed from channel: {data}")
     await client.send_message(
         {
             "rpc": {
@@ -30,12 +22,15 @@ async def handle_subscribe(client, data):
 
 
 @router.message("unsubscribe", state="find_game")
-async def handle_unsubscribe(client, data):
-    logger.info(f"Unsubscribed from channel: {data}")
+async def handle_unsubscribe(client, data, context):
+    await client.send_message(
+        {"subscribe": {"channel": context.data["game"]["channel"]}}
+    )
+    context.state = "game"
 
 
 @router.message("push", state="find_game")
-async def handle_push(client, data):
+async def handle_push(client, data, context):
     """Обрабатывает сообщение 'push'."""
     logger.info(f"Push received: {data}")
 
@@ -54,14 +49,15 @@ async def handle_push(client, data):
             channel_name = game_info.get("channel_name")  # Извлекаем channel_name
 
             # Сохраняем информацию об игре
-            current_game_info.update(
+            context.data(
+                "game",
                 {
-                    "game_id": game_id,
+                    "id": game_id,
                     "color": color,
                     "opponent_nickname": opponent_nickname,
                     "opponent_rating": opponent_rating,
-                    "channel_name": channel_name,  # Добавляем channel_name
-                }
+                    "channel": channel_name,  # Добавляем channel_name
+                },
             )
 
             logger.info(
@@ -79,5 +75,5 @@ async def handle_push(client, data):
 
 
 @router.message("rpc", state="find_game")
-async def handle_rpc(client, data):
+async def handle_rpc(client, data, context):
     logger.info(f"Received RPC message: {data}")

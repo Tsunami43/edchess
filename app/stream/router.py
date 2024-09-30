@@ -1,10 +1,11 @@
 from typing import Callable, Dict, Any
 from loguru import logger
+from .context import Context
 
 
 class Router:
-    def __init__(self, initial_state: str = "*"):
-        self.state = initial_state
+    def __init__(self):
+        self.context = Context()
         self.handlers: Dict[str, Dict[str, Callable[..., Any]]] = {}
 
     def message(self, message_type: str, state: str = "*") -> Callable:
@@ -18,18 +19,18 @@ class Router:
 
         return decorator
 
-    async def handle(self, message_type: str, *args, **kwargs) -> None:
+    async def handle(self, message_type: str, *args) -> None:
         """Обрабатывает сообщение на основе его типа и текущего состояния."""
         state_handlers = self.handlers.get(message_type, {})
 
         # Сначала пытаемся найти хэндлер для текущего состояния
-        handler = state_handlers.get(self.state)
+        handler = state_handlers.get(self.context.state)
 
         if handler:
             logger.debug(
-                f"Handler found for message type '{message_type}' and state '{self.state}'"
+                f"Handler found for message type '{message_type}' and state '{self.context.state}'"
             )
-            await handler(*args, **kwargs)
+            await handler(*args, context=self.context)
         else:
             # Если хэндлер для текущего состояния не найден, ищем хэндлер с состоянием '*'
             handler = state_handlers.get("*")
@@ -37,8 +38,8 @@ class Router:
                 logger.debug(
                     f"Handler found for message type '{message_type}' with universal state '*'"
                 )
-                await handler(*args, **kwargs)
+                await handler(*args, context=self.context)
             else:
                 logger.warning(
-                    f"Unknown message type: {message_type} | State: {self.state} | Args: {args}"
+                    f"Unknown message type: {message_type} | State: {self.context.state} | Args: {args}"
                 )
