@@ -23,6 +23,7 @@ async def handle_subscribe(client, data, context):
 
 @router.message("unsubscribe", state="find_game")
 async def handle_unsubscribe(client, data, context):
+    logger.info(f"Subscribed from channel: {data}")
     await client.send_message(
         {"subscribe": {"channel": context.data["game"]["channel"]}}
     )
@@ -60,7 +61,7 @@ async def handle_push(client, data, context):
                 },
             )
 
-            logger.info(
+            logger.debug(
                 f"Game found! ID: {game_id}, Color: {color}, Opponent: {opponent_nickname}, Opponent Rating: {opponent_rating}, Channel Name: {channel_name}"
             )
             await client.send_message(
