@@ -5,8 +5,7 @@ router = Router()
 
 
 @router.message("connect")
-async def handle_connect(message: Message, client: StreamClient, state: State):
-    logger.info(f"{message}")
+async def handle_connect(client: StreamClient, state: State):
     await client.send_message(
         {
             "subscribe": {"channel": f"wait_game_{client.account_id}"},

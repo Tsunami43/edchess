@@ -30,8 +30,7 @@ async def handle_subscribe(client: StreamClient, game: Game):
 
 
 @router.message("unsubscribe", state="game")
-async def handle_unsubscribe(client: StreamClient, message: Message, state: State):
-    logger.info(f"Unsubscribed from channel: {message}")
+async def handle_unsubscribe(client: StreamClient, state: State):
     client.ping.stop()
     state.clear()
     await client.disconnect()

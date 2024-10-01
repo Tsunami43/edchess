@@ -7,8 +7,7 @@ router = Router()
 
 
 @router.message("subscribe", state="find_game")
-async def handle_subscribe(client: StreamClient, message: Message):
-    logger.info(f"Subscribed from channel: {message}")
+async def handle_subscribe(client: StreamClient):
     await client.send_message(
         {
             "rpc": {
@@ -24,10 +23,7 @@ async def handle_subscribe(client: StreamClient, message: Message):
 
 
 @router.message("unsubscribe", state="find_game")
-async def handle_unsubscribe(
-    client: StreamClient, message: Message, state: State, game: Game
-):
-    logger.info(f"Subscribed from channel: {message}")
+async def handle_unsubscribe(client: StreamClient, state: State, game: Game):
     await client.send_message({"subscribe": {"channel": game.channel}})
     state.set("game")
 
@@ -35,9 +31,6 @@ async def handle_unsubscribe(
 @router.message("push", state="find_game")
 async def handle_push(client: StreamClient, message: Message, state: State):
     """Обрабатывает сообщение 'push'."""
-    logger.info(f"Push received: {message}")
-
-    # Получаем данные из message
     channel = message.data.get("channel")
     pub_data = message.data.get("pub", {}).get("data")
     if channel and pub_data:

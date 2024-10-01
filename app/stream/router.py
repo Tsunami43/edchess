@@ -63,4 +63,4 @@ class Router:
         try:
             await handler(**kwargs)
         except Exception as e:
-            logger.error(e)
+            logger.error(f"Handler={handler} : {e}")
