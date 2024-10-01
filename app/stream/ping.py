@@ -35,4 +35,4 @@ class PingClient:
 
     @prev_ping.setter
     def prev_ping(self):
-        self.__prev_ping = int(time.time() - self.prev_time)
+        self.__prev_ping = int((time.time() - self.prev_time) * 1000)

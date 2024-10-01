@@ -27,3 +27,7 @@ class State:
     def clear_data(self) -> None:
         """Очищает все данные."""
         self.__data.clear()
+
+    def clear(self) -> None:
+        self.__state = "*"
+        self.clear_data()
