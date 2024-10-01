@@ -13,13 +13,25 @@ async def handle_subscribe(client: StreamClient):
             "rpc": {
                 "method": "find_game",
                 "data": {
-                    "type": "bot",
-                    "variation": {"type": "fast_game"},
-                    "bot": {"level": 1, "color": "b"},
+                    "type": "comp",
+                    "variation": {"type": "blitz"},
+                    "comp": {"amount": "0.1", "net": "ton"},
                 },
             },
         }
     )
+    # await client.send_message(
+    #     {
+    #         "rpc": {
+    #             "method": "find_game",
+    #             "data": {
+    #                 "type": "bot",
+    #                 "variation": {"type": "fast_game"},
+    #                 "bot": {"level": 1, "color": "b"},
+    #             },
+    #         },
+    #     }
+    # )
 
 
 @router.message("unsubscribe", state="find_game")

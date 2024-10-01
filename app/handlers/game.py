@@ -1,4 +1,5 @@
 import asyncio
+import random
 from loguru import logger
 from ..stream import Router, State, StreamClient, Message
 from ..game import Game
@@ -11,7 +12,7 @@ async def handle_subscribe(client: StreamClient, game: Game):
     await client.ping.start(client)
     if game.get_turn() == game.color:
         game.timer.start()
-        await asyncio.sleep(1)
+        await asyncio.sleep(1 + round(random.uniform(0.1, 0.5), 2))
         await client.send_message(
             {
                 "rpc": {
@@ -77,8 +78,10 @@ async def handle_push(client: StreamClient, message: Message, state: State, game
                 game.fen = fen
                 if game.get_turn() == game.color:
                     game.timer.start()
-                    await asyncio.sleep(1)
                     last_seq_number: int = move_data.get("seq_number")
+                    await asyncio.sleep(
+                        round(random.uniform(1, 1 + 0.1 * last_seq_number), 4)
+                    )
                     await client.send_message(
                         {
                             "rpc": {
