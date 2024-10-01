@@ -1,12 +1,17 @@
 from typing import Optional
 from .chess import Chess
 from .timer import Timer
+from loguru import logger
 
 
 class Oponent:
-    def __init__(self, nickname: Optional[str], rating: Optiona[int]):
+    def __init__(self, nickname: Optional[str], rating: Optional[int], color: str):
         self.nickname = nickname
         self.rating = rating
+        self.color = color
+
+    def __repr__(self):
+        return f"Oponent(nickname={self.nickname}, rating={self.rating}, color={self.color})"
 
 
 class Game:
@@ -22,7 +27,9 @@ class Game:
     ):
         self.channel = channel
         self.color = color
-        self.oponent = Oponent(oponent_nickname, oponent_rating)
+        self.oponent = Oponent(
+            oponent_nickname, oponent_rating, "b" if color == "w" else "w"
+        )
         self.id = id
         self.fen = fen
         self.chess = Chess()

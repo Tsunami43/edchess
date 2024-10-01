@@ -27,7 +27,6 @@ class StreamClient(Stream):
         self.router = Router()
         self.ping = PingClient()
         self.__websocket = None
-        self.__listener = None
 
     @property
     def __message_id(self) -> int:
@@ -43,7 +42,7 @@ class StreamClient(Stream):
                     logger.info("Connected to WebSocket")
                     self.__websocket = ws
                     await self.send_message({"connect": {"token": token, "name": "js"}})
-                    asyncio.create_task(self.listener())
+                    await self.listener()
             except Exception as e:
                 logger.critical(f"Error occurred during WebSocket connection: {str(e)}")
 
@@ -58,14 +57,14 @@ class StreamClient(Stream):
 
     async def listener(self):
         try:
-            while True:
+            while self.__websocket is not None:
                 msg = await self.__websocket.receive()
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     data = json.loads(msg.data)
                     if data == {}:
                         await self.send_message(data, index=False)
-                    else:
-                        logger.debug(f"Received message: {data}")
+                    # else:
+                    #     logger.debug(f"Received message: {data}")
                     await self.router.handle(self, Message(data))
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     logger.error(f"WebSocket error: {msg.text}")

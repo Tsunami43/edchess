@@ -1,14 +1,15 @@
 import asyncio
 from loguru import logger
 from ..stream import Router, State, StreamClient, Message
+from ..game import Game
 
 router = Router()
 
 
 @router.message("subscribe", state="game")
 async def handle_subscribe(client: StreamClient, game: Game):
-    await client.ping.start()
-    if game.get_turn():
+    await client.ping.start(client)
+    if game.get_turn() == game.color:
         game.timer.start()
         await asyncio.sleep(1)
         await client.send_message(
@@ -59,9 +60,10 @@ async def handle_push(client: StreamClient, message: Message, state: State, game
                 finished_data = move_data.get("finished", {})
                 reason = finished_data.get("reason", "")
                 win_color = finished_data.get("win_color", "")
-                game_finished = GameFinished(reason=reason, win_color=win_color)
                 logger.info(
-                    f"Game finished: {game_finished.reason}, Winner: {game_finished.win_color}"
+                    f"Game finished: {reason}, Winner: {win_color}\n"
+                    f"I - {game.color}\n"
+                    f"{game.oponent}"
                 )
                 await client.send_message(
                     {
@@ -74,10 +76,10 @@ async def handle_push(client: StreamClient, message: Message, state: State, game
                 fen = move_data.get("fen", "")
                 logger.info(f"New move received: {move}, FEN: {fen}")
                 game.fen = fen
-                if not game.get_turn():
+                if game.get_turn() == game.color:
                     game.timer.start()
                     await asyncio.sleep(1)
-                    last_seq_number: int = move_data.get("last_seq_number")
+                    last_seq_number: int = move_data.get("seq_number")
                     await client.send_message(
                         {
                             "rpc": {
@@ -86,14 +88,14 @@ async def handle_push(client: StreamClient, message: Message, state: State, game
                                     "move": game.get_move(),
                                     "channel": game.channel,
                                     "ping": client.ping.prev_ping,
-                                    "last_seq_number": last_seq_number + 1,
+                                    "last_seq_number": last_seq_number,
                                     "time_left": game.timer.stop(),
                                     "is_web": True,
                                 },
                             },
                         }
                     )
-                state.data(game=game)
+                state.set_data("game", game)
         elif name == "stop_timer":
             sn = pub_data.get("data", {}).get("sn")
             logger.info(f"Timer stopped for sequence number: {sn}")

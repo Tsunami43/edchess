@@ -18,4 +18,4 @@ class Message:
         return None
 
     def __repr__(self):
-        return f"Message(id={self.id}, type='{self.type}', data={self.get_data()})"
+        return f"Message(id={self.id}, type='{self.type}', data={self.data})"

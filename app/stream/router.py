@@ -23,13 +23,13 @@ class Router:
     async def handle(self, client, message) -> None:
         """Обрабатывает сообщение на основе его типа и текущего состояния."""
         state_handlers = self.handlers.get(message.type, {})
-
+        state = self.state.get()
         # Сначала пытаемся найти хэндлер для текущего состояния
-        handler = state_handlers.get(self.context.state)
+        handler = state_handlers.get(state)
 
         if handler:
             logger.debug(
-                f"Handler found for message type '{message.type}' and state '{self.context.state}'"
+                f"Handler found for message type '{message.type}' and state '{state}'"
             )
             await self._call_handler(handler, client, message)
         else:
@@ -41,9 +41,7 @@ class Router:
                 )
                 await self._call_handler(handler, client, message)
             else:
-                logger.warning(
-                    f"Unknown message type: {message.type} | State: {self.context.state}"
-                )
+                logger.warning(f"Unknown message type: {message.type} | State: {state}")
 
     async def _call_handler(self, handler: Callable[..., Any], client, message) -> None:
         """Вызывает хэндлер, передавая ему только нужные параметры."""
@@ -62,4 +60,7 @@ class Router:
                 kwargs[param_name] = self.state.data[param_name]
 
         # Вызываем хэндлер с переданными аргументами
-        await handler(**kwargs)
+        try:
+            await handler(**kwargs)
+        except Exception as e:
+            logger.error(e)

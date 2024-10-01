@@ -38,10 +38,8 @@ async def handle_push(client: StreamClient, message: Message, state: State):
     logger.info(f"Push received: {message}")
 
     # Получаем данные из message
-    push_data = message.data
-    channel = push_data.get("channel")
-    pub_data = push_data.get("pub", {}).get("data")
-
+    channel = message.data.get("channel")
+    pub_data = message.data.get("pub", {}).get("data")
     if channel and pub_data:
         # Проверяем, является ли это сообщением о найденной игре
         if pub_data.get("name") == "game_found":
@@ -58,8 +56,7 @@ async def handle_push(client: StreamClient, message: Message, state: State):
             )
 
             # Сохраняем информацию об игре
-            state.data(game=game)
-
+            state.set_data("game", game)
             await client.send_message(
                 {
                     "unsubscribe": {"channel": f"wait_game_{client.account_id}"},

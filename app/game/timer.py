@@ -1,4 +1,5 @@
 import time
+from typing import Optional
 
 
 class Timer:
@@ -8,7 +9,7 @@ class Timer:
         self.time_remaining = time_remaining
         self.first = first
         self.first_move_time_remaining = first_move_time_remaining
-        self.time = None
+        self.time: Optional[float] = None
 
     def start(self):
         """Запускает таймер первого хода."""
@@ -23,11 +24,3 @@ class Timer:
             self.time_remaining + self.first_move_time_remaining - duration
         )
         return self.time_remaining
-
-    def get_turn(
-        self,
-    ) -> str:
-        # Последний символ FEN строки определяет чей ход
-        turn = fen.split(" ")[1]
-        logger.info(f"Текущий ход: {turn}")
-        return turn

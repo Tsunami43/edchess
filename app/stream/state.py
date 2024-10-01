@@ -18,11 +18,9 @@ class State:
         """Возвращает все данные."""
         return self.__data
 
-    @data.setter
-    def data(self, **kwargs) -> None:
+    def set_data(self, key: str, value: Any) -> None:
         """Устанавливает данные в состоянии."""
-        for key, value in kwargs.items():
-            self.__data[key] = value
+        self.__data[key] = value
 
     def clear_data(self) -> None:
         """Очищает все данные."""
