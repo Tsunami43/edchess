@@ -80,7 +80,17 @@ async def handle_push(client: StreamClient, message: Message, state: State, game
                     game.timer.start()
                     last_seq_number: int = move_data.get("seq_number")
                     await asyncio.sleep(
-                        round(random.uniform(1, 1 + 0.1 * last_seq_number), 4)
+                        round(
+                            random.uniform(
+                                1,
+                                (
+                                    1 + 0.05 * last_seq_number
+                                    if last_seq_number > 40
+                                    else 0.1 * last_seq_number
+                                ),
+                            ),
+                            4,
+                        )
                     )
                     await client.send_message(
                         {

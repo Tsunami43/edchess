@@ -24,10 +24,14 @@ async def start_execute():
         account_id=await profile.fetch_account_id(user_agent, init_data),
         user_agent=user_agent,
     )
-    logger.info(f"Balance: {await wallet.fetch_balance(user_agent, init_data)}")
     stream_client.include_router(master.router)
     stream_client.include_router(game.router)
     stream_client.include_router(find_game.router)
+    logger.info(f"Balance: {await wallet.fetch_balance(user_agent, init_data)}")
     # Подключение к Каналу
     await asyncio.sleep(random.randint(2, 4))
-    await stream_client.connect(init_data)
+    while True:
+        await stream_client.connect(init_data)
+        fsl = random.randint(80, 120)
+        logger.info(f"Pause: {fls}sec.")
+        await asyncio.sleep(fls)
