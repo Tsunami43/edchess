@@ -29,7 +29,7 @@ class Router:
 
         if handler:
             logger.debug(
-                f"Handler found for message type '{message.type}' and state '{state}'"
+                f"Handler found for message type '{message.type}' and state '{state}': {message.data}"
             )
             await self._call_handler(handler, client, message)
         else:
@@ -37,11 +37,13 @@ class Router:
             handler = state_handlers.get("*")
             if handler:
                 logger.debug(
-                    f"Handler found for message type '{message.type}' with universal state '*'"
+                    f"Handler found for message type '{message.type}' with universal state '*' : {message.data}"
                 )
                 await self._call_handler(handler, client, message)
             else:
-                logger.warning(f"Unknown message type: {message.type} | State: {state}")
+                logger.warning(
+                    f"Unknown message type: {message.type} | State: {state} | data {message.data}"
+                )
 
     async def _call_handler(self, handler: Callable[..., Any], client, message) -> None:
         """Вызывает хэндлер, передавая ему только нужные параметры."""

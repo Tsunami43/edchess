@@ -8,4 +8,4 @@ class Proxy:
 
     @property
     def url(self):
-        return f"{self.data['scheme']}://{self.data['host']}:{self.data['port']}"
+        return f"{self.data['scheme']}://{self.data['hostname']}:{self.data['port']}"

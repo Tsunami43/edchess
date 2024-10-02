@@ -9,6 +9,7 @@ from .router import Router
 from .ping import PingClient
 from .message import Message
 from ..utils import Proxy
+from aiohttp_socks import ProxyConnector
 
 
 class StreamClient(Stream):
@@ -17,6 +18,7 @@ class StreamClient(Stream):
         account_id: int,
         url: str = "wss://prod-backend-core-oapiyfa2ga-el.a.run.app/ws/web",
         proxy: Optional[Proxy] = None,
+        proxy_url: Optional[str] = None,
         user_agent: Optional[str] = None,
     ):
         self.account_id = account_id
@@ -27,6 +29,7 @@ class StreamClient(Stream):
         self.router = Router()
         self.ping = PingClient()
         self.__websocket = None
+        self.proxy = proxy_url
 
     @property
     def __message_id(self) -> int:
@@ -34,11 +37,11 @@ class StreamClient(Stream):
         return self.message_id
 
     async def connect(self, token: str):
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(
+            connector=ProxyConnector.from_url(self.proxy)
+        ) as session:
             try:
-                async with session.ws_connect(
-                    self.url, headers=self.headers, proxy=self.proxy
-                ) as ws:
+                async with session.ws_connect(self.url, headers=self.headers) as ws:
                     logger.info("Connected to WebSocket")
                     self.__websocket = ws
                     await self.send_message({"connect": {"token": token, "name": "js"}})
