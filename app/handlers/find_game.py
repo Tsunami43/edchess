@@ -1,3 +1,4 @@
+import asyncio
 from loguru import logger
 from ..stream import Router, State, StreamClient, Message
 from ..game import Game
@@ -34,15 +35,15 @@ async def handle_subscribe(client: StreamClient):
     # )
 
 
-import asyncio
-
-
 @router.message("unsubscribe", state="find_game")
 async def handle_unsubscribe(client: StreamClient, state: State, game: Game):
     if game.oponent.nickname == "Daddy" and game.color == "b":
-        await asyncio.sleep(206)
-    await client.send_message({"subscribe": {"channel": game.channel}})
-    state.set("game")
+        await asyncio.sleep(209)
+        state.clear()
+        await client.disconnect()
+    else:
+        await client.send_message({"subscribe": {"channel": game.channel}})
+        state.set("game")
 
 
 @router.message("push", state="find_game")
