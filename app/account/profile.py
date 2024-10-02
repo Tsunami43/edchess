@@ -1,9 +1,12 @@
 import aiohttp
 from typing import Optional
 from loguru import logger
+from aiohttp_socks import ProxyConnector
 
 
-async def fetch_account_id(user_agent: str, telegram_query: str) -> Optional[str]:
+async def fetch_account_id(
+    user_agent: str, telegram_query: str, proxy_url: Optional[str] = None
+) -> Optional[str]:
     url = "https://prod-backend-auth-oapiyfa2ga-el.a.run.app/profile"
 
     # Ваши кастомные заголовки
@@ -27,7 +30,9 @@ async def fetch_account_id(user_agent: str, telegram_query: str) -> Optional[str
         "sec-fetch-site": "cross-site",
     }
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(
+        connector=ProxyConnector.from_url(proxy_url)
+    ) as session:
         try:
             async with session.get(url, headers=headers) as response:
                 # Проверяем статус ответа

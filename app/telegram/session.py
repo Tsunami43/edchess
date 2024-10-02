@@ -38,7 +38,6 @@ class Session:
                     await self.client.connect()
                 except (Unauthorized, UserDeactivated, AuthKeyUnregistered):
                     raise InvalidSession(self.client.name)
-
             dialogs = self.client.get_dialogs()
             async for dialog in dialogs:
                 if (
@@ -47,7 +46,6 @@ class Session:
                     and dialog.chat.username == "hamster_kombat_bot"
                 ):
                     break
-
             while True:
                 try:
                     peer = await self.client.resolve_peer("edchess_bot")
@@ -59,7 +57,6 @@ class Session:
                     logger.info(f"{self.name} | Sleep {fls}s")
 
                     await asyncio.sleep(fls)
-
             web_view = await self.client.invoke(
                 RequestWebView(
                     peer=peer,

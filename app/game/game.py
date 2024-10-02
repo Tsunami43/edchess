@@ -47,5 +47,10 @@ class Game:
         logger.info(f"Текущий ход: {turn}")
         return turn
 
-    def get_move(self) -> str:
-        return self.chess.get_best_move(self.fen)
+    def get_move(self, depth: int = 10, time_limit: float = 1.5) -> str:
+        self.chess.set_fen_position(self.fen)
+        return self.chess.get_best_move(time_limit, depth)
+
+    def get_moves(self, depth: int = 10, number: int = 3):
+        self.chess.set_fen_position(self.fen)
+        return self.chess.get_top_moves(depth=depth, number=number)

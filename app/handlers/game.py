@@ -12,13 +12,14 @@ async def handle_subscribe(client: StreamClient, game: Game):
     await client.ping.start(client)
     if game.get_turn() == game.color:
         game.timer.start()
-        await asyncio.sleep(1 + round(random.uniform(0.1, 0.5), 2))
+        best_move = random.choice(game.get_moves(depth=5, number=5))["Move"]
+        await asyncio.sleep(round(random.uniform(0.5, 1.0)))
         await client.send_message(
             {
                 "rpc": {
                     "method": "move_proposal",
                     "data": {
-                        "move": game.get_move(),
+                        "move": best_move,
                         "channel": game.channel,
                         "ping": client.ping.prev_ping,
                         "last_seq_number": 0,
@@ -79,25 +80,53 @@ async def handle_push(client: StreamClient, message: Message, state: State, game
                 if game.get_turn() == game.color:
                     game.timer.start()
                     last_seq_number: int = move_data.get("seq_number")
-                    await asyncio.sleep(
-                        round(
-                            random.uniform(
-                                1,
-                                (
-                                    1 + 0.05 * last_seq_number
-                                    if last_seq_number > 40
-                                    else 0.1 * last_seq_number
-                                ),
-                            ),
-                            4,
-                        )
-                    )
+                    if game.oponent.nickname != "Daddy":
+                        if last_seq_number < 5:
+                            best_move = random.choice(
+                                game.get_moves(depth=5, number=6)
+                            )["Move"]
+                            await asyncio.sleep(round(random.uniform(0.5, 1.0)))
+                        if last_seq_number < 10:
+                            best_move = random.choice(
+                                game.get_moves(
+                                    depth=10,
+                                    number=3,
+                                )
+                            )["Move"]
+                            await asyncio.sleep(round(random.uniform(1, 2)))
+                        elif last_seq_number < 30:
+                            best_move = game.get_move(
+                                depth=12,
+                                time_limit=round(random.uniform(1, 3)),
+                            )
+                        else:
+                            best_move = game.get_move(
+                                depth=6,
+                                time_limit=round(random.uniform(0.5, 1.5)),
+                            )
+
+                    else:
+                        if last_seq_number < 5:
+                            best_move = random.choice(
+                                game.get_moves(depth=5, number=6)
+                            )["Move"]
+                        if last_seq_number < 10:
+                            best_move = random.choice(
+                                game.get_moves(
+                                    depth=10,
+                                    number=3,
+                                )
+                            )["Move"]
+                        if last_seq_number < 30:
+                            best_move = game.get_move(depth=20, time_limit=2)
+                        else:
+                            best_move = game.get_move(depth=10, time_limit=1)
                     await client.send_message(
                         {
                             "rpc": {
                                 "method": "move_proposal",
                                 "data": {
-                                    "move": game.get_move(),
+                                    "move": best_move,
                                     "channel": game.channel,
                                     "ping": client.ping.prev_ping,
                                     "last_seq_number": last_seq_number,
