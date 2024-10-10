@@ -11,25 +11,28 @@ from pyrogram.errors import (
 from pyrogram.raw.functions.messages import RequestWebView
 from loguru import logger
 from .exceptions import InvalidSession
-from ..utils.proxy import Proxy
+from urllib.parse import urlparse, parse_qs
 
 
 class Session:
     def __init__(
         self,
         name: str,
-        api_id: Optional[int] = None,
-        api_hash: Optional[str] = None,
-        proxy: Optional[Proxy] = None,
+        proxy_data: Optional[dict] = None,
     ):
         self.name = name
         self.client = Client(
             name=name,
-            api_id=api_id,
-            api_hash=api_hash,
-            proxy=proxy.data if proxy else proxy,
+            proxy=proxy_data,
             workdir="sessions",
         )
+
+    async def create(self):
+        try:
+            async with self.client:
+                await self.client.get_me()
+        except Exception as e:
+            logger.error(e)
 
     async def get_tg_web_data(self) -> str:
         try:
@@ -87,3 +90,16 @@ class Session:
                 f"{self.name} | Unknown error while getting Tg Web Data: {error}"
             )
             await asyncio.sleep(delay=3)
+
+    async def get_last_game_url(self) -> Optional[str]:
+        async with self.client:
+            async for message in self.client.get_chat_history("edchess_bot", limit=3):
+                if message.text == "The game started. Make your first move.":
+                    for row in message.reply_markup.inline_keyboard:
+                        for button in row:
+                            parsed_url = urlparse(button.web_app.url)
+                            params = parse_qs(parsed_url.query)
+                            t_param = params.get("t", [None])[0]
+
+                            return t_param
+        return None

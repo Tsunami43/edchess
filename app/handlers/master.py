@@ -1,5 +1,6 @@
 from loguru import logger
 from ..stream import Router, State, StreamClient, Message
+import time
 
 router = Router()
 
@@ -12,6 +13,7 @@ async def handle_connect(client: StreamClient, state: State):
         }
     )
     state.set("find_game")
+    state.set_data("find_game", time.time())
 
 
 @router.message("error")

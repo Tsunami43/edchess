@@ -1,29 +1,28 @@
 import json
-import asyncio
 import aiohttp
+import time
 from typing import Optional
 from loguru import logger
 from fake_useragent import UserAgent
+from aiohttp_socks import ProxyConnector
 from .base import Stream
 from .router import Router
 from .ping import PingClient
 from .message import Message
-from ..utils import Proxy
-from aiohttp_socks import ProxyConnector
 
 
 class StreamClient(Stream):
     def __init__(
         self,
-        account_id: int,
+        account_id: str,
+        init_data: str,
         url: str = "wss://prod-backend-core-oapiyfa2ga-el.a.run.app/ws/web",
-        proxy: Optional[Proxy] = None,
         proxy_url: Optional[str] = None,
         user_agent: Optional[str] = None,
     ):
         self.account_id = account_id
+        self.token = init_data
         self.url = url
-        self.proxy = proxy
         self.headers = {"User-Agent": user_agent or UserAgent().random}
         self.message_id: int = 0
         self.router = Router()
@@ -36,7 +35,7 @@ class StreamClient(Stream):
         self.message_id += 1
         return self.message_id
 
-    async def connect(self, token: str):
+    async def connect(self):
         async with aiohttp.ClientSession(
             connector=ProxyConnector.from_url(self.proxy)
         ) as session:
@@ -44,7 +43,9 @@ class StreamClient(Stream):
                 async with session.ws_connect(self.url, headers=self.headers) as ws:
                     logger.info("Connected to WebSocket")
                     self.__websocket = ws
-                    await self.send_message({"connect": {"token": token, "name": "js"}})
+                    await self.send_message(
+                        {"connect": {"token": self.token, "name": "js"}}
+                    )
                     await self.listener()
             except Exception as e:
                 logger.critical(f"Error occurred during WebSocket connection: {str(e)}")
@@ -65,10 +66,15 @@ class StreamClient(Stream):
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     data = json.loads(msg.data)
                     if data == {}:
-                        await self.send_message(data, index=False)
-                    # else:
-                    #     logger.debug(f"Received message: {data}")
-                    await self.router.handle(self, Message(data))
+                        state = self.router.state.get()
+                        state_data = self.router.state.data.get("find_game", None)
+                        if state == "find_game" and state_data:
+                            if int(time.time() - state_data) > 30:
+                                await self.disconnect()
+                        else:
+                            await self.send_message(data, index=False)
+                    else:
+                        await self.router.handle(self, Message(data))
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     logger.error(f"WebSocket error: {msg.text}")
                 elif msg.type == aiohttp.WSMsgType.CLOSED:

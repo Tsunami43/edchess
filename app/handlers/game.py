@@ -80,47 +80,38 @@ async def handle_push(client: StreamClient, message: Message, state: State, game
                 if game.get_turn() == game.color:
                     game.timer.start()
                     last_seq_number: int = move_data.get("seq_number")
-                    if game.oponent.nickname != "Daddy":
+                    if game.ignore_oponent(color=False):
+                        if last_seq_number < 5:
+                            best_move = game.get_move(depth=15, time_limit=1)
+                        if last_seq_number < 30:
+                            best_move = game.get_move(depth=30, time_limit=2)
+                        else:
+                            best_move = game.get_move(depth=12, time_limit=1)
+                    else:
                         if last_seq_number < 5:
                             best_move = random.choice(
-                                game.get_moves(depth=5, number=6)
+                                game.get_moves(depth=10, number=6)
                             )["Move"]
                             await asyncio.sleep(round(random.uniform(0.5, 1.0)))
                         if last_seq_number < 10:
                             best_move = random.choice(
                                 game.get_moves(
-                                    depth=10,
+                                    depth=12,
                                     number=3,
                                 )
                             )["Move"]
                             await asyncio.sleep(round(random.uniform(1, 2)))
                         elif last_seq_number < 30:
                             best_move = game.get_move(
-                                depth=12,
-                                time_limit=round(random.uniform(1, 3)),
+                                depth=20,
+                                time_limit=round(random.uniform(1.5, 3)),
                             )
                         else:
                             best_move = game.get_move(
-                                depth=6,
+                                depth=12,
                                 time_limit=round(random.uniform(0.5, 1.5)),
                             )
 
-                    else:
-                        if last_seq_number < 5:
-                            best_move = random.choice(
-                                game.get_moves(depth=5, number=6)
-                            )["Move"]
-                        if last_seq_number < 10:
-                            best_move = random.choice(
-                                game.get_moves(
-                                    depth=10,
-                                    number=3,
-                                )
-                            )["Move"]
-                        if last_seq_number < 30:
-                            best_move = game.get_move(depth=20, time_limit=2)
-                        else:
-                            best_move = game.get_move(depth=10, time_limit=1)
                     await client.send_message(
                         {
                             "rpc": {

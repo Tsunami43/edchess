@@ -1,1 +1,1 @@
-from .proxy import Proxy
+from .profile import Profile

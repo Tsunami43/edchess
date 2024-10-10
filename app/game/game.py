@@ -39,6 +39,13 @@ class Game:
             first=color == "w",
         )
 
+    def ignore_oponent(self, color: bool = True) -> bool:
+        ignores = ["Daddy"]
+        if color:
+            return self.oponent.nickname in ignores and self.color == "b"
+        else:
+            return self.oponent.nickname in ignores
+
     def get_turn(
         self,
     ) -> str:

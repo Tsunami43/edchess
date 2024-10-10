@@ -2,7 +2,7 @@ import asyncio
 from loguru import logger
 from ..stream import Router, State, StreamClient, Message
 from ..game import Game
-
+import time
 
 router = Router()
 
@@ -21,6 +21,7 @@ async def handle_subscribe(client: StreamClient):
             },
         }
     )
+
     # await client.send_message(
     #     {
     #         "rpc": {
@@ -37,13 +38,8 @@ async def handle_subscribe(client: StreamClient):
 
 @router.message("unsubscribe", state="find_game")
 async def handle_unsubscribe(client: StreamClient, state: State, game: Game):
-    if game.oponent.nickname == "Daddy" and game.color == "b":
-        await asyncio.sleep(209)
-        state.clear()
-        await client.disconnect()
-    else:
-        await client.send_message({"subscribe": {"channel": game.channel}})
-        state.set("game")
+    await client.send_message({"subscribe": {"channel": game.channel}})
+    state.set("game")
 
 
 @router.message("push", state="find_game")
@@ -54,6 +50,7 @@ async def handle_push(client: StreamClient, message: Message, state: State):
     if channel and pub_data:
         # Проверяем, является ли это сообщением о найденной игре
         if pub_data.get("name") == "game_found":
+            state.clear_data()
             game_info = pub_data.get("data", {})
             oponent = game_info.get("opponent", {})
             game = Game(
@@ -65,16 +62,21 @@ async def handle_push(client: StreamClient, message: Message, state: State):
                 channel=game_info.get("channel_name"),
                 timers=game_info.get("timers", {}),
             )
-
-            # Сохраняем информацию об игре
-            state.set_data("game", game)
-            await client.send_message(
-                {
-                    "unsubscribe": {"channel": f"wait_game_{client.account_id}"},
-                }
+            logger.warning(
+                f"Your oponent: {oponent.get('nickname')}. Your color: {game.color}"
             )
-            # else:
-            #     logger.warning(f"Your oponent: {opponent.get('nickname')}")
+            # Сохраняем информацию об игре
+            if game.ignore_oponent():
+                logger.info("Pause: 189sec.")
+                await asyncio.sleep(180)
+                await client.disconnect()
+            else:
+                state.set_data("game", game)
+                await client.send_message(
+                    {
+                        "unsubscribe": {"channel": f"wait_game_{client.account_id}"},
+                    }
+                )
         else:
             logger.warning("Push does not contain a game_found message.")
     else:
@@ -84,3 +86,13 @@ async def handle_push(client: StreamClient, message: Message, state: State):
 @router.message("rpc", state="find_game")
 async def handle_rpc(message: Message):
     logger.info(f"Received RPC message: {message}")
+
+
+@router.message("error", state="find_game")
+async def handle_error(message: Message, client: StreamClient, state: State):
+    if message.data.get("code") == 409:
+        logger.warning(f"Error received: {message}")
+        state.clear()
+        await client.disconnect()
+    else:
+        logger.error(f"Error received: {message}")
